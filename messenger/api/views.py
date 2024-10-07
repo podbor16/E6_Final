@@ -13,7 +13,12 @@ class ChatViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save()
+        chat = serializer.save()  # Сохранить чат
+        chat.users.add(self.request.user)  # Добавить текущего пользователя в чат
+
+    def get_queryset(self):
+        # Показывать только чаты, в которых участвует текущий пользователь
+        return Chat.objects.filter(users=self.request.user)
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()

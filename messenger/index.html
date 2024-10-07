@@ -16,6 +16,9 @@
 
     <h3>Создать новый чат</h3>
     <input type="text" id="new-chat-name" placeholder="Введите название чата">
+    <select id="new-chat-users" multiple>
+        <!-- Список пользователей будет заполнен через JS -->
+    </select>
     <button onclick="createChat()">Создать чат</button>
 
     <h2>Сообщения</h2>
@@ -31,156 +34,51 @@ let currentChatId = null; // Инициализируем переменную �
 
 async function fetchUsers() {
     const response = await fetch('/api/users/');
-
-    if (!response.ok) {
-        console.error("Ошибка при загрузке пользователей:", response.statusText);
-        return;
-    }
-
     const users = await response.json();
-
-    const userListElement = document.getElementById('user-list');
+    const userListElement = document.getElementById('new-chat-users');
 
     users.forEach(user => {
-        const li = document.createElement('li');
-        li.textContent = user.username;
-        userListElement.appendChild(li);
-
-        li.onclick = () => {
-            fetchChats(user.id);
-        };
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = user.username;
+        userListElement.appendChild(option);
     });
-}
-
-async function fetchChats() {
-    const response = await fetch('/api/chats/');
-
-    if (!response.ok) {
-        console.error("Ошибка при загрузке чатов:", response.statusText);
-        return;
-    }
-
-    const chats = await response.json();
-
-    const chatListElement = document.getElementById('chat-list');
-    chatListElement.innerHTML = ''; // Очистить список чатов
-
-    chats.forEach(chat => {
-        const li = document.createElement('li');
-        li.textContent = chat.name;
-        chatListElement.appendChild(li);
-
-        li.onclick = () => {
-            currentChatId = chat.id; // Сохраняем ID выбранного чата
-            fetchMessages(chat.id);
-        };
-    });
-}
-
-async function fetchMessages(chatId) {
-   const response = await fetch(`/api/chats/${chatId}/messages/`);
-
-   if (!response.ok) {
-       console.error("Ошибка при загрузке сообщений:", response.statusText);
-       return;
-   }
-
-   const messages = await response.json();
-
-   const messagesElement = document.getElementById('messages');
-   messagesElement.innerHTML = ''; // Очистить сообщения
-
-   messages.forEach(message => {
-       const div = document.createElement('div');
-       div.textContent = `${message.user.username}: ${message.text}`;
-       messagesElement.appendChild(div);
-   });
-}
-
-async function sendMessage() {
-   const messageInputElement = document.getElementById('new-message');
-   const messageText = messageInputElement.value;
-
-   if (!currentChatId) {
-       alert("Пожалуйста, выберите чат перед отправкой сообщения.");
-       return;
-   }
-
-   await fetch(`/api/chats/${currentChatId}/messages/`, {
-       method: 'POST',
-       headers: {
-           'Content-Type': 'application/json',
-           // Добавьте заголовок авторизации при необходимости.
-           // 'Authorization': 'Token YOUR_TOKEN_HERE'
-       },
-       body: JSON.stringify({ text: messageText })
-   });
-
-   messageInputElement.value = ''; // Очистить поле ввода сообщения
-
-   // Обновить список сообщений после отправки.
-   fetchMessages(currentChatId);
 }
 
 async function createChat() {
-   const chatNameInputElement = document.getElementById('new-chat-name');
-   const chatName = chatNameInputElement.value;
+    const chatNameInputElement = document.getElementById('new-chat-name');
+    const chatName = chatNameInputElement.value;
+    const usersSelectElement = document.getElementById('new-chat-users');
+    const selectedUsers = Array.from(usersSelectElement.selectedOptions).map(option => option.value);
 
-   if (!chatName) {
-       alert("Пожалуйста, введите название чата.");
-       return;
-   }
+    if (!chatName) {
+        alert("Пожалуйста, введите название чата.");
+        return;
+    }
 
-   const response = await fetch('/api/chats/', {
-       method: 'POST',
-       headers: {
-           'Content-Type': 'application/json',
-           // Добавьте заголовок авторизации при необходимости.
-           // 'Authorization': 'Token YOUR_TOKEN_HERE'
-       },
-       body: JSON.stringify({ name: chatName })
-   });
+    const response = await fetch('/api/chats/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name: chatName,
+            users: selectedUsers  // Передаем выбранных пользователей
+        })
+    });
 
-   if (!response.ok) {
-       console.error("Ошибка при создании чата:", response.statusText);
-       return;
-   }
+    if (!response.ok) {
+        console.error("Ошибка при создании чата:", response.statusText);
+        return;
+    }
 
-   chatNameInputElement.value = ''; // Очистить поле ввода названия чата
+    chatNameInputElement.value = '';
 
-   // Обновить список чатов после создания нового.
-   fetchChats();
+    // Инициализация при загрузке страницы.
+    fetchUsers();
+    createChat();
 }
 
-async function deleteChat() {
-   if (!currentChatId) {
-       alert("Пожалуйста, выберите чат для удаления.");
-       return;
-   }
-
-   const response = await fetch(`/api/chats/${currentChatId}/`, {
-       method: 'DELETE',
-       headers: {
-           // Добавьте заголовок авторизации при необходимости.
-           // 'Authorization': 'Token YOUR_TOKEN_HERE'
-       }
-   });
-
-   if (!response.ok) {
-       console.error("Ошибка при удалении чата:", response.statusText);
-       return;
-   }
-
-   currentChatId = null; // Сбросить текущий ID чата
-   alert("Чат удален.");
-
-   // Обновить список чатов после удаления.
-   fetchChats();
-}
-
-// Инициализация при загрузке страницы.
-fetchUsers();
-fetchChats();
 </script>
 </body>
 </html>

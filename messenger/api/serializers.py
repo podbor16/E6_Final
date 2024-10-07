@@ -16,8 +16,8 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = ['id', 'chat', 'user', 'text', 'timestamp']
 
 class ChatSerializer(serializers.ModelSerializer):
-    messages = MessageSerializer(many=True, read_only=True)
+    users = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
 
     class Meta:
         model = Chat
-        fields = ['id', 'name', 'users', 'messages']
+        fields = ['id', 'name', 'users']
